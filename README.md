@@ -3,4 +3,5 @@ This repository contains scripts for simulaton and analysis on "Trans-generation
 
 # Author name and contact
 Name: Lexi Chen
+
 Email: l.chen21@imperial.ac.uk
