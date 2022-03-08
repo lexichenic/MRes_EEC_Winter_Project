@@ -27,8 +27,8 @@ library(gt)
 
 ```{r,message=FALSE,warning=FALSE}
 ## Import collected data
-setwd("C:/Users/Lexi C/Desktop/Winter Project/Data collection & analysis")
-Data <- read_excel("Import_data.xlsx")
+setwd("C:/Users/Lexi C/Desktop/Winter Project/Data collection & analysis") # Setting working directory
+Data <- read_excel("Import_data.xlsx") # Import excel file with data
 ```
 
 ```{r,message=FALSE,warning=FALSE}
@@ -54,7 +54,7 @@ Data<-mutate(Data,var_r=(SE_of_effect_size)^2) #calculate the effect size varian
 ```{r}
 ## Check for distribution of all data
 Data<-as.data.frame(Data)
-hist(Data$Effect_size,xlab = "Effect Size", main = "All effect sizes")
+hist(Data$Effect_size,xlab = "Effect Size", main = "All effect sizes") # Plot a histogram to examine the distribution of data
 ```
 
 ```{r,warning=FALSE}
@@ -77,7 +77,7 @@ taxa<-c("Acrocephalus arundinaceus",
         "Taeniopygia guttata",
         "Thalassarche melanophris",
         "Troglodytes aedon")
-taxa<-tnrs_match_names(taxa,context_name = "Animals")
+taxa<-tnrs_match_names(taxa,context_name = "Animals") # use the OTL synthesis tree to relate these species. First need to find Open Tree Taxonomy (OTT) IDs for each species. We can do that with the Taxonomic Name Resolution Service function.
 taxon_map<-structure(taxa$search_string,names=taxa$unique_name) #  create a named vector that maps the names we have for each species to the names Open Tree uses for them
 # Get a tree
 tr <- tol_induced_subtree(ott_id(taxa)[is_in_tree(ott_id(taxa))])
@@ -92,9 +92,9 @@ plot(tr)
 
 ```{r, warning=FALSE}
 # make a correlation matrix (a relatedness matrix among species)
-tree<-compute.brlen(tr)
-Phylomatrix<-vcv(tree,cor=T)
-Data[,"Phylogeny"]<-tolower(Data$Phylogeny)
+tree<-compute.brlen(tr) # computes branch lengths of a tree
+Phylomatrix<-vcv(tree,cor=T) # computes the expected phylogeny variances and co-variances of a continuous traits assuming it evolves under a given model
+Data[,"Phylogeny"]<-tolower(Data$Phylogeny) # translate characters in character vectors (from upper to lower case)
 ```
 
 ```{r,warning=FALSE}
@@ -108,7 +108,7 @@ model <- rma.mv(yi=Effect_size,
                                    ~1|Species, # non-phylo effect
                                    ~1|Phylogeny), # phylo effect
                      R=list(Phylogeny=Phylomatrix), # phylogenetic relatedness
-                     method="REML",
+                     method="REML", # can produce unbiased estimates of variance and covariance parameters
                      test="t") # using t dist rather than z because t is a better, more conservative distribution than z
 summary(model)
 
@@ -145,9 +145,9 @@ table.model.r <- data.frame(n=length(unique(Data$Author)),
 )
 
 # creating a nicely-formatted table using the R package 'gt'
-table.model.r.gt <- table.model.r %>% 
+table.model.r.gt <- table.model.r %>% # align data into table
   gt::gt() %>% 
-  cols_label(n=md("**n**"),
+  cols_label(n=md("**n**"), # set column names
              k=md("**k**"),
              mean=md("**Meta-analytic mean**"),
              CI=md("**95% CI**"),
@@ -157,15 +157,15 @@ table.model.r.gt <- table.model.r %>%
              I2_Species=md("***I*<sup>2</sup><sub>species</sub>\n(%)**"),
              I2_Phylogeny=md("***I*<sup>2</sup><sub>phylogeny</sub>\n(%)**")
   ) %>%
-  cols_align(align = "center") %>%
-  tab_source_note(source_note = md("n = number of studies; k = number of effects; CI = confidence interval; PI = prediction interval; *I*<sup>2</sup> = heterogeneity")) #%>%
+  cols_align(align = "center") %>% # make all text center
+  tab_source_note(source_note = md("n = number of studies; k = number of effects; CI = confidence interval; PI = prediction interval; *I*<sup>2</sup> = heterogeneity")) # footnotes for the table
 # tab_options(table.width=770)
 table.model.r.gt
 gtsave(table.model.r.gt,"table2.pdf")
 ```
 
 ```{r}
-# Create forest plot
+# Create forest plot for the summary effect
 pooled_data<-data.frame(Overall_effect_size="Overall summary effect",Effect_size=0.0178,Lower_CI=-0.0774,Upper_CI=0.1131)
 ggplot(data=pooled_data,aes(y=Overall_effect_size,x=Effect_size,xmin=Lower_CI,xmax=Upper_CI))+
   geom_point(size=2.5)+
@@ -242,7 +242,7 @@ g4<-ggplot(data=transmissions,aes(y=Type,x=Effect_size))+
   ylab("Type of transmissions")+
   xlab("Effect size")+
   theme_classic()
-
+# combine the forest plots part 1
 g1<-ggplotGrob(g1)
 g3<-ggplotGrob(g3)
 g.1<-rbind(g1,g3)
@@ -250,7 +250,7 @@ g.1$widths <- unit.pmax(g1$widths,g3$widths)
 grid.newpage()
 grid.draw(g.1)
 ggsave(g.1,file="forest1.pdf")
-
+# combine the forest plots part 2
 g4<-ggplotGrob(g4)
 g2<-ggplotGrob(g2)
 g.2<-rbind(g2,g4)
@@ -290,30 +290,31 @@ plot(tr2)
 
 # Align phylogenetic tree with forest plot with 'species' as a moderator
 d1<-data.frame(Species = tr2$tip.label, Effect_size = c(0.018836849,0.557464473,-0.131254945,0.274554986,-0.08240739,0.055896791,0.007022564,-0.051675939,0.059004543,-0.018225711,0.081061089,0.460178568,0.707474887,-0.279020203), Lower_CI = c(-0.330272026,0.178331699,-0.405347724,-0.022040808,-0.46546565,-0.123365451,-0.173507166,-0.284495262,-0.139990786,-0.350070618,-0.096890598,0.077129381,0.360131345,-0.524245576), Upper_CI = c(0.367945724,0.936597248,0.142837833,0.571150779,0.300650871,0.235159033,0.187552295,0.181143384,0.257999871,0.313619196,0.259012775,0.843227755,1.054818428,-0.03379483))
-
+# Visualizing phylogenetic tree and heterogenous associated data
 tree<-ggtree(as.phylo(tr2))+geom_tiplab()
 ggtree(as.phylo(tr2))+geom_tiplab()+xlim_tree(15)
 
-g3<-facet_plot(tree,panel="Forest plot",data = d1,geom=geom_point,aes(x=Effect_size),stat= 'identity') + ggtree::xlim_expand(xlim=c(-1,1.5),panel="Forest plot")
+g3<-facet_plot(tree,panel="Forest plot",data = d1,geom=geom_point,aes(x=Effect_size),stat= 'identity') + ggtree::xlim_expand(xlim=c(-1,1.5),panel="Forest plot") # Create a plot with tree on the left and forest plot on the right
 g3
-g4<-g3 + xlim_tree(25) + xlim_expand(xlim=c(-0.5,0.5), panel = "Forest plot") +
+g4<-g3 + xlim_tree(25) + xlim_expand(xlim=c(-0.5,0.5), panel = "Forest plot") + # adjust the size of the tree
   theme_tree2()
 g4
-g5<-facet_plot(g4,geom = geom_errorbarh, data=d1,aes(x=Effect_size,xmin=Lower_CI,xmax=Upper_CI),panel = "Forest plot")
+g5<-facet_plot(g4,geom = geom_errorbarh, data=d1,aes(x=Effect_size,xmin=Lower_CI,xmax=Upper_CI),panel = "Forest plot") # add error bars on the forest plot
 g5
 d=data.frame(x=c(-1,-0.5,0,0.5,1,1.5),.panel='Forest plot')
-g6<-g5+geom_vline(data=d,aes(xintercept=x),color = "grey")
+g6<-g5+geom_vline(data=d,aes(xintercept=x),color = "grey") # add vertical lines onto the forest plot
 d2=data.frame(x=0,.panel='Forest plot')
-g7<-g6+geom_vline(data=d2,aes(xintercept=x),linetype = "dotted")
+g7<-g6+geom_vline(data=d2,aes(xintercept=x),linetype = "dotted") # add vertical lines onto the forest plot
 g7
 ggsave(g7,file="forest3.pdf")
 ```
 
 ```{r}
-funnel(model,yaxis = "seinv",xlab = "Effect size")
+funnel(model,yaxis = "seinv",xlab = "Effect size") # plot a funnel plot for publication bias
 ```
 
 ```{r}
+# Egger's regression test
 publication.bias.model.r.all.se <- rma.mv(yi=Effect_size, 
                                           V=var_r,
                                           mods=~1+ # -1 removes the intercept
@@ -324,10 +325,10 @@ publication.bias.model.r.all.se <- rma.mv(yi=Effect_size,
                                                         ~1|Phylogeny),
                                           R=list(Phylogeny=Phylomatrix),
                                           method="REML",
-                                          test="t", # using t dist rather than z
+                                          test="t", 
                                           data=Data)
 summary(publication.bias.model.r.all.se)
-
+# plot a graph for Egger's regression test
 publication<-ggplot(Data,aes(x=SE_of_effect_size,y=Effect_size),ylim(0,0.15))+
   geom_point()+
   geom_abline(intercept = publication.bias.model.r.all.se$b[1],slope = publication.bias.model.r.all.se$b[2])+ # Add regression line
@@ -340,6 +341,7 @@ ggsave("publication.pdf")
 ```
 
 ```{r}
+# Time-lag bias test
 Data$Year_of_publication<-as.numeric(Data$Year_of_publication)
 time.lag.bias.model.r.all.se <- rma.mv(yi=Effect_size, V=var_r,
                                           mods=~1+ # -1 removes the intercept
@@ -353,7 +355,7 @@ time.lag.bias.model.r.all.se <- rma.mv(yi=Effect_size, V=var_r,
                                           test="t", # using t dist rather than z
                                           data=Data)
 summary(time.lag.bias.model.r.all.se)
-
+# plot a graph for time-lag bias test
 time<-ggplot(Data,aes(x=Year_of_publication,y=Effect_size),ylim(2008,2021),cex.axis = 1)+
   geom_point()+
   geom_abline(intercept = time.lag.bias.model.r.all.se$b[1],slope = time.lag.bias.model.r.all.se$b[2])+
@@ -366,5 +368,6 @@ time<-ggplot(Data,aes(x=Year_of_publication,y=Effect_size),ylim(2008,2021),cex.a
 ggsave("time.pdf")
 ```
 ```{r}
+# Export dataset in R
 write.csv(Data,file="Data_R.csv")
 ```
