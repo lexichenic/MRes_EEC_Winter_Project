@@ -121,23 +121,30 @@ metaanalytic.mean.model.r <- predict(model, digits=3)
 model$sigma2
 within_study_variance <- sum((1/Data$var_r)*(14-1))/((sum(1/Data$var_r))^2-sum((1/Data$var_r)^2)) 
 within_study_variance # 9.222487e-05
-sigma_total <- 1.556943e-10+2.058583e-02+1.273269e-02+5.529262e-03+9.222487e-05
-sigma_total # 0.03894001
-I2species<- 2.058583e-02/sigma_total
-I2species # 0.528655
-I2between_study<-1.273269e-02/sigma_total
-I2between_study # 0.3269822
-I2within_study<-5.529262e-03/sigma_total
-I2within_study # 0.1419944
-H2phylogenetic_heritability<- 1.556943e-10/( 1.556943e-10+2.058583e-02+1.273269e-02+5.529262e-03)
-H2phylogenetic_heritability # 4.007804e-09
+sigma_total <- 5.218125e-03+1.067884e-02+2.623742e-02+1.400252e-10+9.222487e-05
+sigma_total # 0.04222661
+I2species<- 2.623742e-02/sigma_total
+I2species # 0.621348
+I2between_study<-1.067884e-02/sigma_total
+I2between_study # 0.2528936
+I2within_study<-5.218125e-03/sigma_total
+I2within_study # 0.1235743
+H2phylogenetic_heritability<- 1.400252e-10/(1.400252e-10+2.623742e-02+1.067884e-02+5.218125e-03)
+H2phylogenetic_heritability # 3.3233e-09
+I2total<-I2species+I2between_study+I2within_study+H2phylogenetic_heritability # 0.997816
 
 # creating a data.frame with the meta-analytic mean and heterogeneity estimates
-table.model.r <- data.frame(n=length(unique(Data$Author)),
+table.model.r <- data.frame(Variables = c("Between-estimate","Between-study","Species","Phylogeny"),
+                            Variance = c(0.0052,0.0107,0.0262,0),
+                            Heterogeneity = c(12.4,25.3,62.1,0)
+)
+
+table.model.r1 <- data.frame(n=length(unique(Data$Author)),
                             k=nrow(Data),
                             mean=round(metaanalytic.mean.model.r[[1]],2),
                             CI=paste0("[",round(metaanalytic.mean.model.r[[3]],2),",",round(metaanalytic.mean.model.r[[4]],2),"]"),
                             PI=paste0("[",round(metaanalytic.mean.model.r[[5]],2),",",round(metaanalytic.mean.model.r[[6]],2),"]"),
+                            I2_Total=round(I2total*100,1),
                             I2_Data_ID=round(I2within_study*100,1),
                             I2_Author=round(I2between_study*100,1),
                             I2_Species=round(I2species*100,1), 
@@ -147,18 +154,13 @@ table.model.r <- data.frame(n=length(unique(Data$Author)),
 # creating a nicely-formatted table using the R package 'gt'
 table.model.r.gt <- table.model.r %>% # align data into table
   gt::gt() %>% 
-  cols_label(n=md("**n**"), # set column names
-             k=md("**k**"),
-             mean=md("**Meta-analytic mean**"),
-             CI=md("**95% CI**"),
-             PI=md("**95% PI**"),
-             I2_Data_ID=md("***I*<sup>2</sup><sub>wtihin-study</sub>\n(%)**"),
-             I2_Author=md("***I*<sup>2</sup><sub>between-study</sub>\n(%)**"),
-             I2_Species=md("***I*<sup>2</sup><sub>species</sub>\n(%)**"),
-             I2_Phylogeny=md("***I*<sup>2</sup><sub>phylogeny</sub>\n(%)**")
+  cols_label(Variables=md("**Random effects**"), # set column names
+             Variance=md("**Variance**"),
+             Heterogeneity=md("**Heterogeneity *I*<sup>2</sup></sub>\n(%)</sub>**")
   ) %>%
   cols_align(align = "center") %>% # make all text center
-  tab_source_note(source_note = md("n = number of studies; k = number of effects; CI = confidence interval; PI = prediction interval; *I*<sup>2</sup> = heterogeneity")) # footnotes for the table
+  tab_source_note(source_note = md("*Number of studies = 21; Number of estimates = 91")) # footnotes for the table
+
 # tab_options(table.width=770)
 table.model.r.gt
 gtsave(table.model.r.gt,"table2.pdf")
@@ -286,9 +288,17 @@ otl_tips2 <- strip_ott_ids(tr2$tip.label, remove_underscores = TRUE)
 tr2$tip.label <- taxon_map[ otl_tips2 ]
 # remove the node labels 
 tr2$node.label <- NULL
+# to capitalize genus names in the phylogeny tree
+foo<-function(x){
+   x<-strsplit(x,split="")[[1]]
+   x[1]<-toupper(x[1])
+   x<-paste(x,collapse="")
+}
+tr2$tip.label<-sapply(tr2$tip.label,foo,USE.NAMES=FALSE)
 plot(tr2)
 
 # Align phylogenetic tree with forest plot with 'species' as a moderator
+
 d1<-data.frame(Species = tr2$tip.label, Effect_size = c(0.018836849,0.557464473,-0.131254945,0.274554986,-0.08240739,0.055896791,0.007022564,-0.051675939,0.059004543,-0.018225711,0.081061089,0.460178568,0.707474887,-0.279020203), Lower_CI = c(-0.330272026,0.178331699,-0.405347724,-0.022040808,-0.46546565,-0.123365451,-0.173507166,-0.284495262,-0.139990786,-0.350070618,-0.096890598,0.077129381,0.360131345,-0.524245576), Upper_CI = c(0.367945724,0.936597248,0.142837833,0.571150779,0.300650871,0.235159033,0.187552295,0.181143384,0.257999871,0.313619196,0.259012775,0.843227755,1.054818428,-0.03379483))
 # Visualizing phylogenetic tree and heterogenous associated data
 tree<-ggtree(as.phylo(tr2))+geom_tiplab()
@@ -310,18 +320,18 @@ ggsave(g7,file="forest3.pdf")
 ```
 
 ```{r}
-funnel(model,yaxis = "seinv",xlab = "Effect size") # plot a funnel plot for publication bias
+# plot a funnel plot for publication bias
+funnel(model.full,yaxis = "seinv",xlab = "Effect size")
 ```
 
 ```{r}
 # Egger's regression test
 publication.bias.model.r.all.se <- rma.mv(yi=Effect_size, 
                                           V=var_r,
-                                          mods=~1+ # -1 removes the intercept
-                                          SE_of_effect_size,
+                                          mods=~-1+ # -1 removes the intercept
+                                          SE_of_effect_size + Social_mating_system + When_in_offspring_life_effect_was_measured + Fitness + Type_of_transmissions + Species,
                                           random = list(~1|Data_ID,
                                                         ~1|Author,
-                                                        ~1|Species,
                                                         ~1|Phylogeny),
                                           R=list(Phylogeny=Phylomatrix),
                                           method="REML",
@@ -344,12 +354,8 @@ ggsave("publication.pdf")
 # Time-lag bias test
 Data$Year_of_publication<-as.numeric(Data$Year_of_publication)
 time.lag.bias.model.r.all.se <- rma.mv(yi=Effect_size, V=var_r,
-                                          mods=~1+ # -1 removes the intercept
+                                          mods=~1+
                                           Year_of_publication,
-                                          random = list(~1|Data_ID,
-                                                        ~1|Author,
-                                                        ~1|Species,
-                                                        ~1|Phylogeny),
                                           R=list(Phylogeny=Phylomatrix),
                                           method="REML",
                                           test="t", # using t dist rather than z
@@ -357,9 +363,10 @@ time.lag.bias.model.r.all.se <- rma.mv(yi=Effect_size, V=var_r,
 summary(time.lag.bias.model.r.all.se)
 # plot a graph for time-lag bias test
 time<-ggplot(Data,aes(x=Year_of_publication,y=Effect_size),ylim(2008,2021),cex.axis = 1)+
-  geom_point()+
+  geom_point(size=1)+
   geom_abline(intercept = time.lag.bias.model.r.all.se$b[1],slope = time.lag.bias.model.r.all.se$b[2])+
   theme_bw() + # Apply black and white theme
+  ylim(-0.5,0.8)+
   theme(legend.position = "none")+ # Remove legend
   scale_x_continuous(n.breaks=14)+
   geom_hline(yintercept=0,linetype=2,color="darkgrey")+
